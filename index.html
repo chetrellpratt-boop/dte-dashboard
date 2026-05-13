@@ -1,162 +1,102 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DTE Monitoring Dashboard</title>
+  <title>DTE Live Negative Monitoring</title>
   <style>
     body { margin:0; font-family: Arial; display:flex; }
-
-    /* Sidebar (Notion-style) */
-    .sidebar {
-      width:220px;
-      background:#111;
-      color:white;
-      height:100vh;
-      padding:15px;
-    }
-    .sidebar h2 { font-size:16px; margin-bottom:15px; }
-    .nav-item { margin:10px 0; cursor:pointer; }
-    .nav-item:hover { text-decoration:underline; }
-
-    /* Main */
-    .main { flex:1; background:#f5f6f8; padding:20px; }
-    .page { display:none; }
-    .active { display:block; }
-
-    .card {
-      background:white;
-      padding:15px;
-      border-radius:10px;
-      margin-bottom:15px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .tabs { display:flex; gap:10px; margin-bottom:15px; }
-    .tab { padding:8px 12px; background:#ddd; border-radius:6px; cursor:pointer; }
-    .tab.active { background:#1976d2; color:white; }
-
-    .btn { padding:6px 10px; background:#1976d2; color:white; border:none; border-radius:5px; cursor:pointer; }
-
-    /* Risk Levels */
-    .low { border-left:6px solid #4caf50; }
-    .medium { border-left:6px solid #ff9800; }
-    .high { border-left:6px solid #f44336; }
-
-    textarea { width:100%; margin-top:8px; }
+    .sidebar { width:220px; background:#111; color:#fff; height:100vh; padding:15px }
+    .nav-item { margin:10px 0; cursor:pointer }
+    .main { flex:1; padding:20px; background:#f4f6f8 }
+    .card { background:white; padding:12px; border-radius:8px; margin-bottom:10px }
+    .high { border-left:6px solid red }
+    .medium { border-left:6px solid orange }
+    .low { border-left:6px solid green }
+    .feed { max-height:500px; overflow:auto }
   </style>
 </head>
-
 <body>
 
 <div class="sidebar">
-  <h2>DTE Monitor</h2>
-  <div class="nav-item" onclick="showPage('dashboard')">Dashboard</div>
-  <div class="nav-item" onclick="showPage('tiktok')">TikTok</div>
-  <div class="nav-item" onclick="showPage('facebook')">Facebook</div>
-  <div class="nav-item" onclick="showPage('instagram')">Instagram</div>
-  <div class="nav-item" onclick="showPage('x')">X (Twitter)</div>
-  <div class="nav-item" onclick="showPage('alerts')">Alerts</div>
-  <div class="nav-item" onclick="showPage('security')">Security</div>
+  <h3>DTE Live Feed</h3>
+  <div class="nav-item" onclick="show('live')">Live Feed</div>
+  <div class="nav-item" onclick="show('alerts')">Alerts</div>
+  <div class="nav-item" onclick="show('notes')">Notes</div>
 </div>
 
 <div class="main">
 
-<!-- Dashboard -->
-<div id="dashboard" class="page active">
-  <div class="card"><h2>Overview</h2><div id="overview"></div></div>
+<div id="live">
+  <h2>Real-Time Negative Mentions (Simulated)</h2>
+  <div class="feed" id="feed"></div>
 </div>
 
-<!-- Platform Pages -->
-<div id="tiktok" class="page"><h2>TikTok</h2><div id="tiktokContent"></div></div>
-<div id="facebook" class="page"><h2>Facebook</h2><div id="facebookContent"></div></div>
-<div id="instagram" class="page"><h2>Instagram</h2><div id="instagramContent"></div></div>
-<div id="x" class="page"><h2>X (Twitter)</h2><div id="xContent"></div></div>
+<div id="alerts" style="display:none">
+  <h2>High Risk Alerts</h2>
+  <div id="alertsBox"></div>
+</div>
 
-<!-- Alerts -->
-<div id="alerts" class="page"><h2>Alerts</h2><div id="alertsContent"></div></div>
-
-<!-- Security -->
-<div id="security" class="page"><h2>Joi Harris Monitoring</h2><div id="securityContent"></div></div>
+<div id="notes" style="display:none">
+  <h2>Analyst Notes</h2>
+  <textarea id="notesArea" placeholder="Write observations..."></textarea>
+</div>
 
 </div>
 
 <script>
-const posts = [
-  { platform:"TikTok", caption:"DTE outage again worst service", url:"#" },
-  { platform:"Facebook", caption:"Why is DTE so unreliable? terrible service", url:"#" },
-  { platform:"X", caption:"My #dtebill is insane", url:"#" },
-  { platform:"Instagram", caption:"Joi Harris should fix this outage worst leadership", url:"#" }
-];
+let feed = [];
 
-function analyze(text){
-  text = text.toLowerCase();
-
-  let risk = "low";
-  if(text.includes("worst") || text.includes("terrible")) risk = "medium";
-  if(text.includes("hate") || text.includes("threat") || text.includes("attack")) risk = "high";
-
-  return {
-    risk,
-    joi: text.includes("joi") || text.includes("harris")
-  }
+function analyze(t){
+ t=t.toLowerCase();
+ let risk='low';
+ if(t.includes('worst')||t.includes('terrible')||t.includes('outrageous')) risk='medium';
+ if(t.includes('hate')||t.includes('lawsuit')||t.includes('fraud')) risk='high';
+ return risk;
 }
 
-const analyzed = posts.map(p=>({...p, ai: analyze(p.caption)}));
+function simulate(){
+ const samples=[
+  "DTE outage again worst service ever",
+  "My DTE bill is outrageous",
+  "DTE is terrible I have no power",
+  "Power still out this is unacceptable DTE",
+  "DTE customer service is the worst",
+  "People should complain about DTE",
+  "Another outage? DTE is unreliable"
+ ];
 
-// Render per platform
-function renderPlatform(platform, container){
-  const filtered = analyzed.filter(p=>p.platform===platform);
+ const random=samples[Math.floor(Math.random()*samples.length)];
+ const post={text:random,time:new Date().toLocaleTimeString(),risk:analyze(random)};
 
-  document.getElementById(container).innerHTML = filtered.map((p,i)=>`
-    <div class='card ${p.ai.risk}'>
-      <strong>${p.platform}</strong>
-      <p>${p.caption}</p>
-      <button class='btn' onclick='saveNote(${i})'>Save Note</button>
-      <textarea id='note-${i}' placeholder='Add notes...'></textarea>
-    </div>
-  `).join("");
+ feed.unshift(post);
+
+ render();
+ updateAlerts();
 }
 
-// Save notes locally
-function saveNote(i){
-  const val = document.getElementById(`note-${i}`).value;
-  localStorage.setItem("note-"+i, val);
-  alert("Note saved");
+function render(){
+ document.getElementById('feed').innerHTML = feed.map(p=>`
+  <div class='card ${p.risk}'>
+   <b>${p.risk.toUpperCase()}</b>
+   <p>${p.text}</p>
+   <small>${p.time}</small>
+  </div>
+ `).join('');
 }
 
-// Alerts
-const alerts = analyzed.filter(p=>p.ai.risk!=="low");
-document.getElementById("alertsContent").innerHTML = alerts.map(p=>`
-  <div class='card ${p.ai.risk}'>${p.caption}</div>
-`).join("");
-
-// Security
-const security = analyzed.filter(p=>p.ai.joi && p.ai.risk!=="low");
-document.getElementById("securityContent").innerHTML = security.map(p=>`
-  <div class='card high'>${p.caption}</div>
-`).join("");
-
-// Overview stats
-const high = analyzed.filter(p=>p.ai.risk==='high').length;
-const medium = analyzed.filter(p=>p.ai.risk==='medium').length;
-const low = analyzed.filter(p=>p.ai.risk==='low').length;
-
-document.getElementById("overview").innerHTML = `
-  High Risk: ${high} <br>
-  Medium Risk: ${medium} <br>
-  Low Risk: ${low}
-`;
-
-// Navigation
-function showPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function updateAlerts(){
+ const high=feed.filter(p=>p.risk==='high');
+ document.getElementById('alertsBox').innerHTML = high.map(p=>`<div class='card high'>${p.text}</div>`).join('');
 }
 
-// Init
-renderPlatform("TikTok", "tiktokContent");
-renderPlatform("Facebook", "facebookContent");
-renderPlatform("Instagram", "instagramContent");
-renderPlatform("X", "xContent");
+function show(id){
+ document.getElementById('live').style.display='none';
+ document.getElementById('alerts').style.display='none';
+ document.getElementById('notes').style.display='none';
+ document.getElementById(id).style.display='block';
+}
+
+setInterval(simulate,4000);
 </script>
 
 </body>
