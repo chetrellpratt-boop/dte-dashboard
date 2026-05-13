@@ -1,103 +1,98 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DTE Live Negative Monitoring</title>
-  <style>
-    body { margin:0; font-family: Arial; display:flex; }
-    .sidebar { width:220px; background:#111; color:#fff; height:100vh; padding:15px }
-    .nav-item { margin:10px 0; cursor:pointer }
-    .main { flex:1; padding:20px; background:#f4f6f8 }
-    .card { background:white; padding:12px; border-radius:8px; margin-bottom:10px }
-    .high { border-left:6px solid red }
-    .medium { border-left:6px solid orange }
-    .low { border-left:6px solid green }
-    .feed { max-height:500px; overflow:auto }
-  </style>
+<title>DTE Enterprise Monitoring Dashboard</title>
+https://cdn.jsdelivr.net/npm/chart.js
+<style>
+body{margin:0;font-family:Arial;display:flex;background:#eef2f5}
+.sidebar{width:240px;background:#0d1117;color:#fff;height:100vh;padding:15px}
+.nav-item{margin:12px 0;cursor:pointer}
+.main{flex:1;padding:20px}
+.page{display:none}
+.active{display:block}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:12px}
+.high{border-left:6px solid red}
+.medium{border-left:6px solid orange}
+.low{border-left:6px solid green}
+.feed{max-height:400px;overflow:auto}
+.alertFlash{animation:flash 1s infinite}
+@keyframes flash{0%{background:#fff}50%{background:#ffebee}100%{background:#fff}}
+</style>
 </head>
 <body>
 
 <div class="sidebar">
-  <h3>DTE Live Feed</h3>
-  <div class="nav-item" onclick="show('live')">Live Feed</div>
-  <div class="nav-item" onclick="show('alerts')">Alerts</div>
-  <div class="nav-item" onclick="show('notes')">Notes</div>
+<h3>DTE Intelligence</h3>
+<div class="nav-item" onclick="show('dashboard')">Dashboard</div>
+<div class="nav-item" onclick="show('feed')">Live Feed</div>
+<div class="nav-item" onclick="show('alerts')">Alerts</div>
+<div class="nav-item" onclick="show('charts')">Charts</div>
+<div class="nav-item" onclick="show('security')">Security</div>
+<div class="nav-item" onclick="show('notes')">Notes</div>
 </div>
 
 <div class="main">
 
-<div id="live">
-  <h2>Real-Time Negative Mentions (Simulated)</h2>
-  <div class="feed" id="feed"></div>
+<div id="dashboard" class="page active">
+<h2>Executive Overview</h2>
+<div class="card" id="metrics"></div>
 </div>
 
-<div id="alerts" style="display:none">
-  <h2>High Risk Alerts</h2>
-  <div id="alertsBox"></div>
-</div>
+<div id="feed" class="page"><h2>Live Feed</h2><div id="feedBox" class="feed"></div></div>
 
-<div id="notes" style="display:none">
-  <h2>Analyst Notes</h2>
-  <textarea id="notesArea" placeholder="Write observations..."></textarea>
-</div>
+<div id="alerts" class="page"><h2>Critical Alerts</h2><div id="alertBox"></div></div>
+
+<div id="charts" class="page"><h2>Analytics</h2><canvas id="chart"></canvas></div>
+
+<div id="security" class="page"><h2>Security Monitoring</h2><div id="securityBox"></div></div>
+
+<div id="notes" class="page"><h2>Notes</h2><textarea style="width:100%;height:200px"></textarea></div>
 
 </div>
 
 <script>
-let feed = [];
-
-function analyze(t){
- t=t.toLowerCase();
- let risk='low';
- if(t.includes('worst')||t.includes('terrible')||t.includes('outrageous')) risk='medium';
- if(t.includes('hate')||t.includes('lawsuit')||t.includes('fraud')) risk='high';
- return risk;
-}
+let feed=[]; let history=[];
+function analyze(t){t=t.toLowerCase();
+let risk='low';
+if(t.includes('outage')||t.includes('terrible')) risk='medium';
+if(t.includes('fraud')||t.includes('hate')) risk='high';
+return {risk,joi:t.includes('joi')}}
 
 function simulate(){
- const samples=[
-  "DTE outage again worst service ever",
-  "My DTE bill is outrageous",
-  "DTE is terrible I have no power",
-  "Power still out this is unacceptable DTE",
-  "DTE customer service is the worst",
-  "People should complain about DTE",
-  "Another outage? DTE is unreliable"
- ];
-
- const random=samples[Math.floor(Math.random()*samples.length)];
- const post={text:random,time:new Date().toLocaleTimeString(),risk:analyze(random)};
-
- feed.unshift(post);
-
- render();
- updateAlerts();
+const samples=["DTE outage again","terrible DTE service","fraud complaints spreading","customers upset at DTE"];
+let txt=samples[Math.floor(Math.random()*samples.length)];
+let ai=analyze(txt);
+let post={txt,risk:ai.risk,time:new Date().toLocaleTimeString(),joi:ai.joi};
+feed.unshift(post);
+history.push(ai.risk);
+updateAll();
 }
 
-function render(){
- document.getElementById('feed').innerHTML = feed.map(p=>`
-  <div class='card ${p.risk}'>
-   <b>${p.risk.toUpperCase()}</b>
-   <p>${p.text}</p>
-   <small>${p.time}</small>
-  </div>
- `).join('');
+function updateAll(){
+// feed
+feedBox.innerHTML=feed.map(p=>`<div class='card ${p.risk}'>${p.risk}: ${p.txt}</div>`).join('');
+// alerts
+alertBox.innerHTML=feed.filter(p=>p.risk==='high').map(p=>`<div class='card high alertFlash'>${p.txt}</div>`).join('');
+// metrics
+let h=feed.filter(p=>p.risk==='high').length;
+let m=feed.filter(p=>p.risk==='medium').length;
+metrics.innerHTML=`High:${h} | Medium:${m} | Total:${feed.length}`;
+// security
+securityBox.innerHTML=feed.filter(p=>p.joi && p.risk!='low').map(p=>`<div class='card high'>${p.txt}</div>`).join('');
+// chart
+renderChart();
 }
 
-function updateAlerts(){
- const high=feed.filter(p=>p.risk==='high');
- document.getElementById('alertsBox').innerHTML = high.map(p=>`<div class='card high'>${p.text}</div>`).join('');
+function renderChart(){
+if(window.chart) window.chart.destroy();
+window.chart=new Chart(document.getElementById('chart'),{
+type:'line',
+data:{labels:history.map((_,i)=>i), datasets:[{label:'Risk Trend',data:history.map(x=>x==='high'?3:x==='medium'?2:1)}]}
+});
 }
 
-function show(id){
- document.getElementById('live').style.display='none';
- document.getElementById('alerts').style.display='none';
- document.getElementById('notes').style.display='none';
- document.getElementById(id).style.display='block';
-}
-
-setInterval(simulate,4000);
+function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active')}
+setInterval(simulate,3000);
 </script>
-
 </body>
 </html>
