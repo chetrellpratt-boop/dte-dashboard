@@ -4,101 +4,151 @@
 <head>
   <title>DTE Monitoring Dashboard</title>
   <style>
-    body { font-family: Arial; padding: 20px; background:#f5f5f5;}
-    .card { background:white; padding:15px; margin-bottom:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-    .alert { color:red; font-weight:bold;}
+    body { font-family: Arial; margin:0; background:#f4f6f8; }
+    header { background:#111; color:white; padding:15px; }
+    nav { display:flex; gap:20px; padding:10px; background:#222; color:white; }
+    nav div { cursor:pointer; }
+    nav div:hover { text-decoration:underline; }
+
+    .container { padding:20px; }
+    .card { background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+
+    .hidden { display:none; }
+    .alert { color:#d32f2f; font-weight:bold; }
+
+    .btn {
+      padding:6px 10px;
+      border:none;
+      background:#1976d2;
+      color:white;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    /* Modal */
+    .modal {
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.6);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+    .modal-content {
+      background:white;
+      padding:20px;
+      border-radius:10px;
+      width:300px;
+    }
   </style>
 </head>
 
 <body>
 
-<h1>DTE Social Monitoring Dashboard</h1>
+<header>
+  <h1>DTE Social Monitoring Dashboard</h1>
+</header>
 
-<div class="card">
-  <h2>Alerts</h2>
-  <div id="alerts">Loading...</div>
+<nav>
+  <div onclick="showPage('dashboard')">Dashboard</div>
+  <div onclick="showPage('alerts')">Alerts</div>
+  <div onclick="showPage('security')">Security</div>
+</nav>
+
+<div class="container">
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="page">
+    <div class="card">
+      <h2>All Posts</h2>
+      <div id="posts"></div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div id="alerts" class="page hidden">
+    <div class="card">
+      <h2>Alerts</h2>
+      <div id="alertsContent"></div>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div id="security" class="page hidden">
+    <div class="card">
+      <h2>Joi Harris Security Monitoring</h2>
+      <div id="securityContent"></div>
+    </div>
+  </div>
+
 </div>
 
-<div class="card">
-  <h2>Flagged Content</h2>
-  <div id="posts"></div>
-</div>
-
-<div class="card">
-  <h2>Joi Harris Security Monitoring</h2>
-  <div id="joi"></div>
+<!-- Modal -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <h3>Post Details</h3>
+    <p id="modalText"></p>
+    <button class="btn" onclick="closeModal()">Close</button>
+  </div>
 </div>
 
 <script>
 const posts = [
-  {
-    platform: "TikTok",
-    caption: "DTE outage again worst service #dteoutage",
-    url: "https://www.tiktok.com"
-  },
-  {
-    platform: "Facebook",
-    caption: "Why is DTE so unreliable? terrible service",
-    url: "https://facebook.com"
-  },
-  {
-    platform: "X",
-    caption: "My #dtebill is insane",
-    url: "https://x.com"
-  },
-  {
-    platform: "Instagram",
-    caption: "Joi Harris should fix this outage immediately worst leadership",
-    url: "https://instagram.com"
-  }
+  { platform:"TikTok", caption:"DTE outage again worst service", url:"https://tiktok.com" },
+  { platform:"Facebook", caption:"Why is DTE so unreliable? terrible service", url:"https://facebook.com" },
+  { platform:"X", caption:"My #dtebill is insane", url:"https://x.com" },
+  { platform:"Instagram", caption:"Joi Harris should fix this outage worst leadership", url:"https://instagram.com" }
 ];
 
-function analyze(text) {
-  const t = text.toLowerCase();
+function analyze(text){
+  text = text.toLowerCase();
   return {
-    toxic: t.includes("worst") || t.includes("terrible") || t.includes("hate"),
-    threat: t.includes("attack") || t.includes("harm"),
-    joi: t.includes("joi") || t.includes("harris")
-  };
+    toxic: text.includes("worst") || text.includes("terrible"),
+    threat: text.includes("harm") || text.includes("attack"),
+    joi: text.includes("joi") || text.includes("harris")
+  }
 }
 
-let alerts = [];
+const analyzed = posts.map(p => ({...p, ai: analyze(p.caption)}));
 
-const analyzed = posts.map(p => ({
-  ...p,
-  ai: analyze(p.caption)
-}));
-
-if (analyzed.some(p => p.ai.toxic)) {
-  alerts.push("⚠️ Toxic content detected");
-}
-
-if (analyzed.some(p => p.ai.threat)) {
-  alerts.push("🚨 Threat detected");
-}
-
-document.getElementById("alerts").innerHTML =
-  alerts.length === 0 ? "No alerts" : alerts.map(a => '<div class=\"alert\">'+a+'</div>').join("");
-
-document.getElementById("posts").innerHTML =
-  analyzed.map(p => `
-    <div class="card">
+// Render Posts
+function render(){
+  document.getElementById("posts").innerHTML = analyzed.map((p,i)=>`
+    <div class='card'>
       <strong>${p.platform}</strong>
       <p>${p.caption}</p>
-      ${p.url}View Post</a>
+      <button class='btn' onclick='openModal(${i})'>View Details</button>
     </div>
   `).join("");
 
-const joiPosts = analyzed.filter(p => p.ai.joi && p.ai.toxic);
+  const alerts = analyzed.filter(p=>p.ai.toxic || p.ai.threat);
+  document.getElementById("alertsContent").innerHTML = alerts.length===0
+    ? "No alerts"
+    : alerts.map(p=>`<div class='alert'>${p.caption}</div>`).join("");
 
-document.getElementById("joi").innerHTML =
-  joiPosts.length === 0
-    ? "No security concerns"
-    : joiPosts.map(p => `
-        <div class="alert">
-          [${p.platform}] ${p.caption}
-        </div>
-      `).join("");
+  const security = analyzed.filter(p=>p.ai.joi && p.ai.toxic);
+  document.getElementById("securityContent").innerHTML = security.length===0
+    ? "No concerns"
+    : security.map(p=>`<div class='alert'>${p.caption}</div>`).join("");
+}
+
+// Navigation
+function showPage(pageId){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(pageId).classList.remove('hidden');
+}
+
+// Modal
+function openModal(i){
+  document.getElementById("modalText").innerText = analyzed[i].caption;
+  document.getElementById("modal").classList.remove('hidden');
+}
+
+function closeModal(){
+  document.getElementById("modal").classList.add('hidden');
+}
+
+render();
 </script>
 
 </body>
