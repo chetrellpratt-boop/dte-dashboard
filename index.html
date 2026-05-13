@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DTE Monitoring Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background:#f5f5f5;}
+    .card { background:white; padding:15px; margin-bottom:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+    .alert { color:red; font-weight:bold;}
+  </style>
+</head>
+
+<body>
+
+<h1>DTE Social Monitoring Dashboard</h1>
+
+<div class="card">
+  <h2>Alerts</h2>
+  <div id="alerts">Loading...</div>
+</div>
+
+<div class="card">
+  <h2>Flagged Content</h2>
+  <div id="posts"></div>
+</div>
+
+<div class="card">
+  <h2>Joi Harris Security Monitoring</h2>
+  <div id="joi"></div>
+</div>
+
+<script>
+const posts = [
+  {
+    platform: "TikTok",
+    caption: "DTE outage again worst service #dteoutage",
+    url: "https://www.tiktok.com"
+  },
+  {
+    platform: "Facebook",
+    caption: "Why is DTE so unreliable? terrible service",
+    url: "https://facebook.com"
+  },
+  {
+    platform: "X",
+    caption: "My #dtebill is insane",
+    url: "https://x.com"
+  },
+  {
+    platform: "Instagram",
+    caption: "Joi Harris should fix this outage immediately worst leadership",
+    url: "https://instagram.com"
+  }
+];
+
+function analyze(text) {
+  const t = text.toLowerCase();
+  return {
+    toxic: t.includes("worst") || t.includes("terrible") || t.includes("hate"),
+    threat: t.includes("attack") || t.includes("harm"),
+    joi: t.includes("joi") || t.includes("harris")
+  };
+}
+
+let alerts = [];
+
+const analyzed = posts.map(p => ({
+  ...p,
+  ai: analyze(p.caption)
+}));
+
+if (analyzed.some(p => p.ai.toxic)) {
+  alerts.push("⚠️ Toxic content detected");
+}
+
+if (analyzed.some(p => p.ai.threat)) {
+  alerts.push("🚨 Threat detected");
+}
+
+document.getElementById("alerts").innerHTML =
+  alerts.length === 0 ? "No alerts" : alerts.map(a => '<div class=\"alert\">'+a+'</div>').join("");
+
+document.getElementById("posts").innerHTML =
+  analyzed.map(p => `
+    <div class="card">
+      <strong>${p.platform}</strong>
+      <p>${p.caption}</p>
+      ${p.url}View Post</a>
+    </div>
+  `).join("");
+
+const joiPosts = analyzed.filter(p => p.ai.joi && p.ai.toxic);
+
+document.getElementById("joi").innerHTML =
+  joiPosts.length === 0
+    ? "No security concerns"
+    : joiPosts.map(p => `
+        <div class="alert">
+          [${p.platform}] ${p.caption}
+        </div>
+      `).join("");
+</script>
+
+</body>
+</html>
